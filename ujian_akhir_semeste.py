@@ -15,21 +15,16 @@ st.set_page_config(
 )
 
 # =============================
-# HEADER
+# SIDEBAR
 # =============================
-st.title("🎓 Career Path Analysis Dashboard")
-st.markdown(
-    """
-    Dashboard ini menyajikan **analisis hubungan antara jenjang pendidikan,
-    keterampilan, sertifikasi, dan keberhasilan karier** berdasarkan data historis.
-
-    📌 Fokus Analisis:
-    - Perbandingan **Berhasil vs Gagal**
-    - Profil kompetensi tiap jenjang pendidikan
-    - Distribusi karier dan performa akademik
-    """
+st.sidebar.title("🎓 Career Analysis")
+menu = st.sidebar.radio(
+    "Navigasi",
+    ["Dashboard Utama", "Profil Lengkap", "Analisis Skill", "Visualisasi Global"]
 )
-st.divider()
+
+st.sidebar.markdown("---")
+st.sidebar.caption("© Career Analysis Dashboard")
 
 # =============================
 # LOAD DATA
@@ -40,12 +35,7 @@ FILE_PATH = "career_dataset_large.xlsx"
 def load_data():
     return pd.read_excel(FILE_PATH, engine="openpyxl")
 
-try:
-    df = load_data()
-    st.success("✅ Data berhasil dimuat")
-except Exception:
-    st.error("❌ File tidak ditemukan / gagal dibaca")
-    st.stop()
+df = load_data()
 
 # =============================
 # DATA CLEANING
@@ -63,188 +53,132 @@ target_levels = ["Intermediate", "Master's", "Bachelor's", "Matric", "PhD"]
 df = df[df["Education Level"].isin(target_levels)]
 
 # =============================
-# SUMMARY TABLE
+# DASHBOARD UTAMA
 # =============================
-st.header("📋 Ringkasan Distribusi Data")
+if menu == "Dashboard Utama":
 
-summary = (
-    df["Education Level"]
-    .value_counts()
-    .reindex(target_levels)
-    .reset_index()
-)
-summary.columns = ["Education Level", "Total Data"]
+    st.title("📊 Career Path Analysis Dashboard")
+    st.caption("Ringkasan cepat data & performa karier")
 
-col1, col2 = st.columns([2, 3])
-with col1:
-    st.dataframe(summary, use_container_width=True)
+    col1, col2, col3 = st.columns(3)
 
-with col2:
-    st.info(
-        """
-        **Interpretasi:**
-        Tabel ini menunjukkan jumlah data pada masing-masing jenjang pendidikan
-        yang menjadi dasar analisis lanjutan.
-        """
+    col1.metric("Total Data", len(df))
+    col2.metric("Tingkat Berhasil (%)",
+                round((df["Status_Keberhasilan"] == "Berhasil").mean() * 100, 2))
+    col3.metric("Jumlah Karier Unik", df["Recommended Career"].nunique())
+
+    st.markdown("---")
+
+    st.subheader("📋 Distribusi Jenjang Pendidikan")
+    summary = df["Education Level"].value_counts().reindex(target_levels)
+
+    fig, ax = plt.subplots(figsize=(10, 4))
+    summary.plot(kind="bar", ax=ax)
+    ax.set_ylabel("Jumlah Data")
+    st.pyplot(fig)
+
+# =============================
+# PROFIL LENGKAP
+# =============================
+elif menu == "Profil Lengkap":
+
+    st.title("🔍 Profil Lengkap per Jenjang")
+
+    selected_level = st.selectbox(
+        "Pilih Jenjang Pendidikan",
+        target_levels
     )
 
-st.divider()
+    def get_top_items(dataframe, edu_level, status, column, top_n=5):
+        subset = dataframe[
+            (dataframe["Education Level"] == edu_level) &
+            (dataframe["Status_Keberhasilan"] == status)
+        ][column].dropna()
+
+        items = []
+        for entry in subset:
+            items.extend([i.strip() for i in str(entry).split(",")])
+
+        return pd.DataFrame(
+            Counter(items).most_common(top_n),
+            columns=["Item", "Count"]
+        )
+
+    tab1, tab2 = st.tabs(["✅ Berhasil", "❌ Gagal"])
+
+    for tab, status, color in zip(
+        [tab1, tab2],
+        ["Berhasil", "Gagal"],
+        ["Greens_r", "Reds_r"]
+    ):
+        with tab:
+            col1, col2 = st.columns(2)
+
+            with col1:
+                sns.barplot(
+                    data=get_top_items(df, selected_level, status, "Skills"),
+                    x="Count", y="Item", palette=color
+                )
+                st.pyplot(plt.gcf())
+                plt.clf()
+
+            with col2:
+                sns.barplot(
+                    data=get_top_items(df, selected_level, status, "Certifications"),
+                    x="Count", y="Item", palette=color
+                )
+                st.pyplot(plt.gcf())
+                plt.clf()
 
 # =============================
-# ANALISIS PROFIL LENGKAP
+# ANALISIS SKILL
 # =============================
-st.header("🔍 Analisis Profil Lengkap per Jenjang Pendidikan")
-st.caption("Perbandingan karakteristik individu **Berhasil** dan **Gagal**")
+elif menu == "Analisis Skill":
 
-def get_top_items(dataframe, edu_level, status, column, top_n=5):
-    subset = dataframe[
-        (dataframe["Education Level"] == edu_level) &
-        (dataframe["Status_Keberhasilan"] == status)
-    ][column].dropna()
+    st.title("🧠 Analisis Skill Pembeda")
 
-    items = []
-    for entry in subset:
-        items.extend([i.strip() for i in str(entry).split(",")])
+    def extract_skills(series):
+        items = []
+        for s in series:
+            items.extend([i.strip() for i in str(s).split(",")])
+        return pd.Series(items).value_counts()
 
-    counts = Counter(items).most_common(top_n)
-    return pd.DataFrame(counts, columns=["Item", "Count"])
+    diff_skill = (
+        extract_skills(df[df["Status_Keberhasilan"] == "Berhasil"]["Skills"]) -
+        extract_skills(df[df["Status_Keberhasilan"] == "Gagal"]["Skills"])
+    ).dropna().sort_values(ascending=False).head(10)
 
-for jenjang in target_levels:
-    if jenjang not in df["Education Level"].unique():
-        continue
+    fig, ax = plt.subplots(figsize=(10, 5))
+    diff_skill.plot(kind="barh", ax=ax)
+    ax.invert_yaxis()
+    st.pyplot(fig)
 
-    with st.expander(f"🎓 {jenjang}"):
-        fig, axes = plt.subplots(4, 2, figsize=(16, 22))
-        fig.suptitle(
-            f"Profil Lengkap: {jenjang} (Berhasil vs Gagal)",
-            fontsize=18,
-            fontweight="bold"
-        )
+    st.info("Skill dengan nilai positif lebih dominan pada individu yang berhasil.")
 
-        # Specialization
-        sns.barplot(
-            data=get_top_items(df, jenjang, "Berhasil", "Specialization"),
-            x="Count", y="Item", ax=axes[0, 0], palette="Greens_r"
-        )
-        axes[0, 0].set_title("Top Specialization (Berhasil)")
+# =============================
+# VISUALISASI GLOBAL
+# =============================
+elif menu == "Visualisasi Global":
 
-        sns.barplot(
-            data=get_top_items(df, jenjang, "Gagal", "Specialization"),
-            x="Count", y="Item", ax=axes[0, 1], palette="Reds_r"
-        )
-        axes[0, 1].set_title("Top Specialization (Gagal)")
+    st.title("🌍 Visualisasi Global")
 
-        # Skills
-        sns.barplot(
-            data=get_top_items(df, jenjang, "Berhasil", "Skills"),
-            x="Count", y="Item", ax=axes[1, 0], palette="Greens_r"
-        )
-        axes[1, 0].set_title("Top Skills (Berhasil)")
+    tab1, tab2 = st.tabs(["📦 Distribusi Karier", "☁️ WordCloud"])
 
-        sns.barplot(
-            data=get_top_items(df, jenjang, "Gagal", "Skills"),
-            x="Count", y="Item", ax=axes[1, 1], palette="Reds_r"
-        )
-        axes[1, 1].set_title("Top Skills (Gagal)")
-
-        # Certifications
-        sns.barplot(
-            data=get_top_items(df, jenjang, "Berhasil", "Certifications"),
-            x="Count", y="Item", ax=axes[2, 0], palette="Greens_r"
-        )
-        axes[2, 0].set_title("Top Certifications (Berhasil)")
-
-        sns.barplot(
-            data=get_top_items(df, jenjang, "Gagal", "Certifications"),
-            x="Count", y="Item", ax=axes[2, 1], palette="Reds_r"
-        )
-        axes[2, 1].set_title("Top Certifications (Gagal)")
-
-        # CGPA
-        sns.histplot(
-            df[(df["Education Level"] == jenjang) &
-               (df["Status_Keberhasilan"] == "Berhasil")]["CGPA/Percentage"],
-            kde=True, ax=axes[3, 0], color="green"
-        )
-        axes[3, 0].set_title("Distribusi CGPA (Berhasil)")
-
-        sns.histplot(
-            df[(df["Education Level"] == jenjang) &
-               (df["Status_Keberhasilan"] == "Gagal")]["CGPA/Percentage"],
-            kde=True, ax=axes[3, 1], color="red"
-        )
-        axes[3, 1].set_title("Distribusi CGPA (Gagal)")
-
-        plt.tight_layout()
+    with tab1:
+        ct = pd.crosstab(df["Education Level"], df["Recommended Career"])
+        fig, ax = plt.subplots(figsize=(14, 6))
+        sns.heatmap(ct, cmap="YlGnBu", ax=ax)
         st.pyplot(fig)
 
-st.divider()
+    with tab2:
+        all_skills = " ".join(df["Skills"].astype(str))
+        wc = WordCloud(
+            width=900,
+            height=400,
+            background_color="white"
+        ).generate(all_skills)
 
-# =============================
-# ANALISIS NILAI TERPOPULER
-# =============================
-st.header("📊 Nilai Terpopuler per Jenjang")
-st.caption("Ringkasan nilai yang paling sering muncul")
-
-cols = ['Specialization', 'Skills', 'Certifications', 'CGPA/Percentage', 'Recommended Career']
-results = []
-
-for level in target_levels:
-    level_df = df[df["Education Level"] == level]
-    for col in cols:
-        if col in level_df.columns:
-            counts = level_df[col].value_counts()
-            if not counts.empty:
-                results.append({
-                    "Jenjang": level,
-                    "Kolom": col,
-                    "Jumlah Unik": level_df[col].nunique(),
-                    "Nilai Terpopuler": counts.index[0],
-                    "Frekuensi": counts.iloc[0]
-                })
-
-summary_df = pd.DataFrame(results)
-
-with st.expander("📌 Lihat Tabel Nilai Terpopuler"):
-    st.dataframe(summary_df, use_container_width=True)
-
-st.divider()
-
-# =============================
-# TOP SKILL DIFFERENCE
-# =============================
-st.header("🧠 Top Skill Pembeda Keberhasilan")
-
-def extract_skills(series):
-    items = []
-    for s in series:
-        items.extend([i.strip() for i in str(s).split(",")])
-    return pd.Series(items).value_counts()
-
-diff_skill = (
-    extract_skills(df[df["Status_Keberhasilan"] == "Berhasil"]["Skills"]) -
-    extract_skills(df[df["Status_Keberhasilan"] == "Gagal"]["Skills"])
-).dropna().sort_values(ascending=False).head(10)
-
-fig, ax = plt.subplots(figsize=(10, 6))
-diff_skill.plot(kind="barh", ax=ax)
-ax.invert_yaxis()
-ax.set_xlabel("Selisih Frekuensi")
-st.pyplot(fig)
-
-st.info("Skill dengan nilai positif lebih dominan dimiliki individu yang berhasil.")
-
-st.divider()
-
-# =============================
-# WORDCLOUD
-# =============================
-st.header("☁️ WordCloud Keterampilan Dominan")
-
-all_skills = " ".join(df["Skills"].astype(str))
-wc = WordCloud(width=900, height=400, background_color="white").generate(all_skills)
-
-fig, ax = plt.subplots(figsize=(12, 6))
-ax.imshow(wc)
-ax.axis("off")
-st.pyplot(fig)
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.imshow(wc)
+        ax.axis("off")
+        st.pyplot(fig)
