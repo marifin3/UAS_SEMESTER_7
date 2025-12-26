@@ -7,19 +7,33 @@ from collections import Counter
 from wordcloud import WordCloud
 
 # =============================
-# KONFIGURASI AWAL
+# PAGE CONFIG
 # =============================
 st.set_page_config(
-    page_title="Career Analysis Dashboard",
+    page_title="Career Path Analysis",
     layout="wide"
 )
 
 # =============================
+# SIDEBAR
+# =============================
+st.sidebar.title("🎓 Career Analysis")
+menu = st.sidebar.radio(
+    "Navigasi",
+    ["Dashboard Utama", "Profil Lengkap", "Analisis Skill", "Visualisasi Global"]
+)
+
+st.sidebar.markdown("---")
+st.sidebar.caption("© Career Analysis Dashboard")
+
+# =============================
 # LOAD DATA
 # =============================
+FILE_PATH = "career_dataset_large.xlsx"
+
 @st.cache_data
 def load_data():
-    return pd.read_excel("career_dataset_large.xlsx")
+    return pd.read_excel(FILE_PATH, engine="openpyxl")
 
 df = load_data()
 
@@ -32,54 +46,46 @@ df["Specialization"] = df["Specialization"].fillna("None")
 df["Skills"] = df["Skills"].fillna("None")
 
 df["Status_Keberhasilan"] = np.where(
-    df["CGPA/Percentage"] >= 80,
-    "Berhasil",
-    "Gagal"
+    df["CGPA/Percentage"] >= 80, "Berhasil", "Gagal"
 )
 
 target_levels = ["Intermediate", "Master's", "Bachelor's", "Matric", "PhD"]
 df = df[df["Education Level"].isin(target_levels)]
 
 # =============================
-# SIDEBAR MENU
+# DASHBOARD UTAMA
 # =============================
-st.sidebar.title("📌 Menu")
-menu = st.sidebar.radio(
-    "Pilih Analisis",
-    [
-        "Ringkasan Data",
-        "Analisis Profil Lengkap",
-        "Analisis Skill",
-        "Visualisasi Global"
-    ]
-)
+if menu == "Dashboard Utama":
 
-# =============================
-# RINGKASAN DATA
-# =============================
-if menu == "Ringkasan Data":
+    st.title("📊 Career Path Analysis Dashboard")
+    st.caption("Ringkasan cepat data & performa karier")
 
-    st.title("📊 Ringkasan Jenjang Pendidikan")
+    col1, col2, col3 = st.columns(3)
 
-    summary = (
-        df["Education Level"]
-        .value_counts()
-        .reindex(target_levels)
-        .reset_index()
-    )
-    summary.columns = ["Education Level", "Total Data"]
+    col1.metric("Total Data", len(df))
+    col2.metric("Tingkat Berhasil (%)",
+                round((df["Status_Keberhasilan"] == "Berhasil").mean() * 100, 2))
+    col3.metric("Jumlah Karier Unik", df["Recommended Career"].nunique())
 
-    st.dataframe(summary, use_container_width=True)
+    st.markdown("---")
+
+    st.subheader("📋 Distribusi Jenjang Pendidikan")
+    summary = df["Education Level"].value_counts().reindex(target_levels)
+
+    fig, ax = plt.subplots(figsize=(10, 4))
+    summary.plot(kind="bar", ax=ax)
+    ax.set_ylabel("Jumlah Data")
+    st.pyplot(fig)
 
 # =============================
-# ANALISIS PROFIL LENGKAP
+# PROFIL LENGKAP
 # =============================
-elif menu == "Analisis Profil Lengkap":
+elif menu == "Profil Lengkap":
 
-    st.title("📈 Analisis Profil Lengkap (Berhasil vs Gagal)")
+    st.title("🔍 Profil Lengkap per Jenjang")
 
     selected_level = st.selectbox(
-        "🎓 Pilih Jenjang Pendidikan",
+        "Pilih Jenjang Pendidikan",
         target_levels
     )
 
@@ -87,7 +93,7 @@ elif menu == "Analisis Profil Lengkap":
         subset = dataframe[
             (dataframe["Education Level"] == edu_level) &
             (dataframe["Status_Keberhasilan"] == status)
-        ][column]
+        ][column].dropna()
 
         items = []
         for entry in subset:
@@ -98,71 +104,31 @@ elif menu == "Analisis Profil Lengkap":
             columns=["Item", "Count"]
         )
 
-    if selected_level in df["Education Level"].unique():
+    tab1, tab2 = st.tabs(["✅ Berhasil", "❌ Gagal"])
 
-        fig, axes = plt.subplots(4, 2, figsize=(16, 22))
-        fig.suptitle(
-            f"Analisis Profil Lengkap: {selected_level}",
-            fontsize=20,
-            fontweight="bold"
-        )
+    for tab, status, color in zip(
+        [tab1, tab2],
+        ["Berhasil", "Gagal"],
+        ["Greens_r", "Reds_r"]
+    ):
+        with tab:
+            col1, col2 = st.columns(2)
 
-        # Specialization
-        sns.barplot(
-            data=get_top_items(df, selected_level, "Berhasil", "Specialization"),
-            x="Count", y="Item", ax=axes[0, 0], palette="Greens_r"
-        )
-        axes[0, 0].set_title("Specialization (Berhasil)")
+            with col1:
+                sns.barplot(
+                    data=get_top_items(df, selected_level, status, "Skills"),
+                    x="Count", y="Item", palette=color
+                )
+                st.pyplot(plt.gcf())
+                plt.clf()
 
-        sns.barplot(
-            data=get_top_items(df, selected_level, "Gagal", "Specialization"),
-            x="Count", y="Item", ax=axes[0, 1], palette="Reds_r"
-        )
-        axes[0, 1].set_title("Specialization (Gagal)")
-
-        # Skills
-        sns.barplot(
-            data=get_top_items(df, selected_level, "Berhasil", "Skills"),
-            x="Count", y="Item", ax=axes[1, 0], palette="Greens_r"
-        )
-        axes[1, 0].set_title("Skills (Berhasil)")
-
-        sns.barplot(
-            data=get_top_items(df, selected_level, "Gagal", "Skills"),
-            x="Count", y="Item", ax=axes[1, 1], palette="Reds_r"
-        )
-        axes[1, 1].set_title("Skills (Gagal)")
-
-        # Certifications
-        sns.barplot(
-            data=get_top_items(df, selected_level, "Berhasil", "Certifications"),
-            x="Count", y="Item", ax=axes[2, 0], palette="Greens_r"
-        )
-        axes[2, 0].set_title("Certifications (Berhasil)")
-
-        sns.barplot(
-            data=get_top_items(df, selected_level, "Gagal", "Certifications"),
-            x="Count", y="Item", ax=axes[2, 1], palette="Reds_r"
-        )
-        axes[2, 1].set_title("Certifications (Gagal)")
-
-        # CGPA
-        sns.histplot(
-            df[(df["Education Level"] == selected_level) &
-               (df["Status_Keberhasilan"] == "Berhasil")]["CGPA/Percentage"],
-            ax=axes[3, 0], kde=True, color="green"
-        )
-        axes[3, 0].set_title("Distribusi CGPA (Berhasil)")
-
-        sns.histplot(
-            df[(df["Education Level"] == selected_level) &
-               (df["Status_Keberhasilan"] == "Gagal")]["CGPA/Percentage"],
-            ax=axes[3, 1], kde=True, color="red"
-        )
-        axes[3, 1].set_title("Distribusi CGPA (Gagal)")
-
-        plt.tight_layout()
-        st.pyplot(fig)
+            with col2:
+                sns.barplot(
+                    data=get_top_items(df, selected_level, status, "Certifications"),
+                    x="Count", y="Item", palette=color
+                )
+                st.pyplot(plt.gcf())
+                plt.clf()
 
 # =============================
 # ANALISIS SKILL
@@ -180,11 +146,14 @@ elif menu == "Analisis Skill":
     diff_skill = (
         extract_skills(df[df["Status_Keberhasilan"] == "Berhasil"]["Skills"]) -
         extract_skills(df[df["Status_Keberhasilan"] == "Gagal"]["Skills"])
-    ).dropna().head(10)
+    ).dropna().sort_values(ascending=False).head(10)
 
     fig, ax = plt.subplots(figsize=(10, 5))
-    diff_skill.sort_values().plot(kind="barh", ax=ax)
+    diff_skill.plot(kind="barh", ax=ax)
+    ax.invert_yaxis()
     st.pyplot(fig)
+
+    st.info("Skill dengan nilai positif lebih dominan pada individu yang berhasil.")
 
 # =============================
 # VISUALISASI GLOBAL
@@ -193,7 +162,7 @@ elif menu == "Visualisasi Global":
 
     st.title("🌍 Visualisasi Global")
 
-    tab1, tab2 = st.tabs(["Heatmap", "WordCloud"])
+    tab1, tab2 = st.tabs(["📦 Distribusi Karier", "☁️ WordCloud"])
 
     with tab1:
         ct = pd.crosstab(df["Education Level"], df["Recommended Career"])
@@ -202,11 +171,12 @@ elif menu == "Visualisasi Global":
         st.pyplot(fig)
 
     with tab2:
+        all_skills = " ".join(df["Skills"].astype(str))
         wc = WordCloud(
             width=900,
             height=400,
             background_color="white"
-        ).generate(" ".join(df["Skills"].astype(str)))
+        ).generate(all_skills)
 
         fig, ax = plt.subplots(figsize=(12, 6))
         ax.imshow(wc)
