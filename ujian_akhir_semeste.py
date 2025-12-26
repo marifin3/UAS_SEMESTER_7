@@ -236,30 +236,6 @@ sns.boxplot(
 plt.xticks(rotation=45)
 st.pyplot(fig)
 
-# =============================
-# HEATMAP
-# =============================
-st.subheader("Heatmap Spesialisasi vs Karier")
-
-ct = pd.crosstab(df["Specialization"], df["Recommended Career"])
-
-fig, ax = plt.subplots(figsize=(14, 7))
-sns.heatmap(ct, cmap="YlGnBu", ax=ax)
-st.pyplot(fig)
-
-# =============================
-# STACKED BAR
-# =============================
-st.subheader("Distribusi Karier per Jenjang (%)")
-
-career_dist = (
-    pd.crosstab(df["Education Level"], df["Recommended Career"], normalize="index") * 100
-)
-
-fig, ax = plt.subplots(figsize=(12, 6))
-career_dist.plot(kind="bar", stacked=True, ax=ax)
-st.pyplot(fig)
-
 # -----------------------------
 # PERHITUNGAN PERSENTASE
 # -----------------------------
