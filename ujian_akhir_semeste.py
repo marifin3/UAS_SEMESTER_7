@@ -40,6 +40,109 @@ target_levels = ["Intermediate", "Master's", "Bachelor's", "Matric", "PhD"]
 df = df[df["Education Level"].isin(target_levels)]
 
 # =============================
+# 2. PENGOLAHAN DATA
+# =============================
+df['Education Level'] = df['Education Level'].str.strip()
+
+df['Status_Keberhasilan'] = np.where(
+    df['CGPA/Percentage'] >= 80, 'Berhasil', 'Gagal'
+)
+
+df['Certifications'] = df['Certifications'].fillna('None')
+df['Specialization'] = df['Specialization'].fillna('None')
+df['Skills'] = df['Skills'].fillna('None')
+
+
+# =============================
+# 3. FUNGSI TOP ITEMS
+# =============================
+def get_top_items(dataframe, edu_level, status, column, top_n=5):
+    subset = dataframe[
+        (dataframe['Education Level'] == edu_level) &
+        (dataframe['Status_Keberhasilan'] == status)
+    ][column].dropna()
+
+    items = []
+    for entry in subset:
+        items.extend([i.strip() for i in str(entry).split(',')])
+
+    counts = Counter(items).most_common(top_n)
+    return pd.DataFrame(counts, columns=['Item', 'Count'])
+
+
+# =============================
+# 4. VISUALISASI PER JENJANG
+# =============================
+list_jenjang = ["Intermediate", "Master's", "Bachelor's", "Matric", "PhD"]
+
+st.header("Analisis Profil Lengkap per Jenjang Pendidikan")
+
+for jenjang in list_jenjang:
+    if jenjang not in df['Education Level'].unique():
+        st.warning(f"Data untuk jenjang {jenjang} tidak ditemukan")
+        continue
+
+    st.subheader(f"{jenjang} — Berhasil vs Gagal")
+
+    fig, axes = plt.subplots(4, 2, figsize=(16, 24))
+    fig.suptitle(
+        f'Analisis Profil Lengkap: {jenjang}',
+        fontsize=22,
+        fontweight='bold',
+        y=1.02
+    )
+
+    # ---- Specialization ----
+    d_sp_b = get_top_items(df, jenjang, 'Berhasil', 'Specialization')
+    d_sp_g = get_top_items(df, jenjang, 'Gagal', 'Specialization')
+
+    if not d_sp_b.empty:
+        sns.barplot(data=d_sp_b, x='Count', y='Item', ax=axes[0, 0], palette='Greens_r')
+    axes[0, 0].set_title('Top Specialization (Berhasil)')
+
+    if not d_sp_g.empty:
+        sns.barplot(data=d_sp_g, x='Count', y='Item', ax=axes[0, 1], palette='Reds_r')
+    axes[0, 1].set_title('Top Specialization (Gagal)')
+
+    # ---- Skills ----
+    d_s_b = get_top_items(df, jenjang, 'Berhasil', 'Skills')
+    d_s_g = get_top_items(df, jenjang, 'Gagal', 'Skills')
+
+    if not d_s_b.empty:
+        sns.barplot(data=d_s_b, x='Count', y='Item', ax=axes[1, 0], palette='Greens_r')
+    axes[1, 0].set_title('Top Skills (Berhasil)')
+
+    if not d_s_g.empty:
+        sns.barplot(data=d_s_g, x='Count', y='Item', ax=axes[1, 1], palette='Reds_r')
+    axes[1, 1].set_title('Top Skills (Gagal)')
+
+    # ---- Certifications ----
+    d_c_b = get_top_items(df, jenjang, 'Berhasil', 'Certifications')
+    d_c_g = get_top_items(df, jenjang, 'Gagal', 'Certifications')
+
+    if not d_c_b.empty:
+        sns.barplot(data=d_c_b, x='Count', y='Item', ax=axes[2, 0], palette='Greens_r')
+    axes[2, 0].set_title('Top Certifications (Berhasil)')
+
+    if not d_c_g.empty:
+        sns.barplot(data=d_c_g, x='Count', y='Item', ax=axes[2, 1], palette='Reds_r')
+    axes[2, 1].set_title('Top Certifications (Gagal)')
+
+    # ---- CGPA Distribution ----
+    sub_b = df[(df['Education Level'] == jenjang) & (df['Status_Keberhasilan'] == 'Berhasil')]
+    sub_g = df[(df['Education Level'] == jenjang) & (df['Status_Keberhasilan'] == 'Gagal')]
+
+    sns.histplot(sub_b['CGPA/Percentage'], kde=True, ax=axes[3, 0], color='green')
+    axes[3, 0].set_title('Distribusi CGPA (Berhasil)')
+
+    sns.histplot(sub_g['CGPA/Percentage'], kde=True, ax=axes[3, 1], color='red')
+    axes[3, 1].set_title('Distribusi CGPA (Gagal)')
+
+    plt.tight_layout()
+    st.pyplot(fig)
+
+
+# =============================
 # SUMMARY TABLE
 # =============================
 st.subheader("Ringkasan Jenjang Pendidikan")
