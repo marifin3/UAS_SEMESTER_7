@@ -95,92 +95,106 @@ if menu == "Dashboard Utama":
     st.pyplot(fig)
 
 
-    # ==================================================
+# =============================
 # ANALISIS PROFIL LENGKAP (BERHASIL vs GAGAL)
-# ==================================================
-elif menu == "Profil Lengkap":
+# =============================
+st.subheader("📈 Analisis Profil Lengkap per Jenjang Pendidikan")
 
-    st.subheader("📈 Analisis Profil Lengkap per Jenjang Pendidikan")
+def get_top_items(dataframe, edu_level, status, column, top_n=5):
+    subset = dataframe[
+        (dataframe["Education Level"] == edu_level) &
+        (dataframe["Status_Keberhasilan"] == status)
+    ][column]
 
-    def get_top_items(dataframe, edu_level, status, column, top_n=5):
-        subset = dataframe[
-            (dataframe["Education Level"] == edu_level) &
-            (dataframe["Status_Keberhasilan"] == status)
-        ][column].dropna()
+    all_items = []
+    for entry in subset.dropna():
+        all_items.extend([i.strip() for i in str(entry).split(",")])
 
-        all_items = []
-        for entry in subset:
-            all_items.extend([i.strip() for i in str(entry).split(",")])
+    if len(all_items) == 0:
+        return pd.DataFrame(columns=["Item", "Count"])
 
-        counts = Counter(all_items).most_common(top_n)
-        return pd.DataFrame(counts, columns=["Item", "Count"]) if counts else pd.DataFrame(columns=["Item", "Count"])
+    counts = Counter(all_items).most_common(top_n)
+    return pd.DataFrame(counts, columns=["Item", "Count"])
 
-    selected_level = st.selectbox(
-        "🎓 Pilih Jenjang Pendidikan",
-        target_levels
+
+# ===== PILIH JENJANG (SUPAYA OUTPUT MUNCUL & RAPI) =====
+selected_level = st.selectbox(
+    "🎓 Pilih Jenjang Pendidikan",
+    options=target_levels,
+    index=0
+)
+
+# ===== PASTIKAN DATA ADA =====
+level_data = df[df["Education Level"] == selected_level]
+
+if level_data.empty:
+    st.warning("⚠️ Tidak ada data untuk jenjang ini.")
+else:
+    fig, axes = plt.subplots(4, 2, figsize=(16, 22))
+    fig.suptitle(
+        f"Analisis Profil Lengkap: {selected_level} (Berhasil vs Gagal)",
+        fontsize=22,
+        fontweight="bold",
+        y=1.02
     )
 
-    if selected_level in df["Education Level"].unique():
+    # =============================
+    # BARIS 1 – SPECIALIZATION
+    # =============================
+    sp_b = get_top_items(df, selected_level, "Berhasil", "Specialization")
+    sp_g = get_top_items(df, selected_level, "Gagal", "Specialization")
 
-        fig, axes = plt.subplots(4, 2, figsize=(16, 24))
-        fig.suptitle(
-            f"Analisis Profil Lengkap: {selected_level} (Berhasil vs Gagal)",
-            fontsize=22,
-            fontweight="bold",
-            y=1.01
-        )
+    if not sp_b.empty:
+        sns.barplot(data=sp_b, x="Count", y="Item", ax=axes[0, 0])
+    axes[0, 0].set_title("Top Specialization (Berhasil)")
 
-        # ===== Specialization =====
-        sp_b = get_top_items(df, selected_level, "Berhasil", "Specialization")
-        sp_g = get_top_items(df, selected_level, "Gagal", "Specialization")
+    if not sp_g.empty:
+        sns.barplot(data=sp_g, x="Count", y="Item", ax=axes[0, 1])
+    axes[0, 1].set_title("Top Specialization (Gagal)")
 
-        if not sp_b.empty:
-            sns.barplot(data=sp_b, x="Count", y="Item", ax=axes[0, 0], palette="Greens_r")
-        axes[0, 0].set_title("Top Specialization (Berhasil)")
+    # =============================
+    # BARIS 2 – SKILLS
+    # =============================
+    sk_b = get_top_items(df, selected_level, "Berhasil", "Skills")
+    sk_g = get_top_items(df, selected_level, "Gagal", "Skills")
 
-        if not sp_g.empty:
-            sns.barplot(data=sp_g, x="Count", y="Item", ax=axes[0, 1], palette="Reds_r")
-        axes[0, 1].set_title("Top Specialization (Gagal)")
+    if not sk_b.empty:
+        sns.barplot(data=sk_b, x="Count", y="Item", ax=axes[1, 0])
+    axes[1, 0].set_title("Top Skills (Berhasil)")
 
-        # ===== Skills =====
-        sk_b = get_top_items(df, selected_level, "Berhasil", "Skills")
-        sk_g = get_top_items(df, selected_level, "Gagal", "Skills")
+    if not sk_g.empty:
+        sns.barplot(data=sk_g, x="Count", y="Item", ax=axes[1, 1])
+    axes[1, 1].set_title("Top Skills (Gagal)")
 
-        if not sk_b.empty:
-            sns.barplot(data=sk_b, x="Count", y="Item", ax=axes[1, 0], palette="Greens_r")
-        axes[1, 0].set_title("Top Skills (Berhasil)")
+    # =============================
+    # BARIS 3 – CERTIFICATIONS
+    # =============================
+    ct_b = get_top_items(df, selected_level, "Berhasil", "Certifications")
+    ct_g = get_top_items(df, selected_level, "Gagal", "Certifications")
 
-        if not sk_g.empty:
-            sns.barplot(data=sk_g, x="Count", y="Item", ax=axes[1, 1], palette="Reds_r")
-        axes[1, 1].set_title("Top Skills (Gagal)")
+    if not ct_b.empty:
+        sns.barplot(data=ct_b, x="Count", y="Item", ax=axes[2, 0])
+    axes[2, 0].set_title("Top Certifications (Berhasil)")
 
-        # ===== Certifications =====
-        ct_b = get_top_items(df, selected_level, "Berhasil", "Certifications")
-        ct_g = get_top_items(df, selected_level, "Gagal", "Certifications")
+    if not ct_g.empty:
+        sns.barplot(data=ct_g, x="Count", y="Item", ax=axes[2, 1])
+    axes[2, 1].set_title("Top Certifications (Gagal)")
 
-        if not ct_b.empty:
-            sns.barplot(data=ct_b, x="Count", y="Item", ax=axes[2, 0], palette="Greens_r")
-        axes[2, 0].set_title("Top Certifications (Berhasil)")
+    # =============================
+    # BARIS 4 – DISTRIBUSI CGPA
+    # =============================
+    sub_b = level_data[level_data["Status_Keberhasilan"] == "Berhasil"]
+    sub_g = level_data[level_data["Status_Keberhasilan"] == "Gagal"]
 
-        if not ct_g.empty:
-            sns.barplot(data=ct_g, x="Count", y="Item", ax=axes[2, 1], palette="Reds_r")
-        axes[2, 1].set_title("Top Certifications (Gagal)")
+    sns.histplot(sub_b["CGPA/Percentage"], kde=True, ax=axes[3, 0])
+    axes[3, 0].set_title("Distribusi CGPA (Berhasil)")
 
-        # ===== CGPA =====
-        sub_b = df[(df["Education Level"] == selected_level) & (df["Status_Keberhasilan"] == "Berhasil")]
-        sub_g = df[(df["Education Level"] == selected_level) & (df["Status_Keberhasilan"] == "Gagal")]
+    sns.histplot(sub_g["CGPA/Percentage"], kde=True, ax=axes[3, 1])
+    axes[3, 1].set_title("Distribusi CGPA (Gagal)")
 
-        sns.histplot(sub_b["CGPA/Percentage"], kde=True, ax=axes[3, 0], color="green")
-        axes[3, 0].set_title("Distribusi CGPA (Berhasil)")
+    plt.tight_layout()
+    st.pyplot(fig)
 
-        sns.histplot(sub_g["CGPA/Percentage"], kde=True, ax=axes[3, 1], color="red")
-        axes[3, 1].set_title("Distribusi CGPA (Gagal)")
-
-        plt.tight_layout()
-        st.pyplot(fig)
-
-    else:
-        st.warning("Data untuk jenjang ini tidak tersedia.")
 
     # =============================
     # EXPANDER (BUTTON DROPDOWN)
