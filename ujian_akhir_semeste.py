@@ -286,7 +286,7 @@ else:
 # =============================
 # ANALISIS SKILL
 # =============================
-if menu == "Analisis Skill":
+elif menu == "Analisis Skill":
 
     st.title("🧠 Analisis Skill Pembeda")
 
