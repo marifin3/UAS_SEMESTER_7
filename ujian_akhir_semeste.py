@@ -54,6 +54,63 @@ summary.columns = ["Education Level", "Total Data"]
 
 st.dataframe(summary, use_container_width=True)
 
+
+# =============================
+# ANALISIS NILAI TERPOPULER (STREAMLIT)
+# =============================
+import streamlit as st
+import pandas as pd
+
+st.subheader("📊 Analisis Nilai Terpopuler per Jenjang Pendidikan")
+
+# Kolom yang ingin dianalisis
+cols = [
+    'Specialization',
+    'Skills',
+    'Certifications',
+    'CGPA/Percentage',
+    'Recommended Career'
+]
+
+target_levels = ["Intermediate", "Master's", "Bachelor's", "Matric", "PhD"]
+
+results = []
+
+for level in target_levels:
+    level_df = df[df['Education Level'] == level]
+
+    # Lewati jika tidak ada data
+    if level_df.empty:
+        continue
+
+    for col in cols:
+        # Pastikan kolom ada
+        if col not in level_df.columns:
+            continue
+
+        counts = level_df[col].value_counts(dropna=True)
+
+        if counts.empty:
+            continue
+
+        results.append({
+            'Jenjang': level,
+            'Kolom': col,
+            'Jumlah Unik (Beda)': int(level_df[col].nunique()),
+            'Nilai Terpopuler': counts.index[0],
+            'Frekuensi (Sama)': int(counts.iloc[0])
+        })
+
+# Konversi ke DataFrame
+summary_df = pd.DataFrame(results)
+
+# Tampilkan di Streamlit
+if summary_df.empty:
+    st.warning("Tidak ada data yang dapat ditampilkan.")
+else:
+    st.dataframe(summary_df, use_container_width=True)
+
+
 # =============================
 # TOP SKILL DIFFERENCE
 # =============================
