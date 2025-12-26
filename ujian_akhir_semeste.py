@@ -98,7 +98,7 @@ if menu == "Dashboard Utama":
     # ==================================================
 # ANALISIS PROFIL LENGKAP (BERHASIL vs GAGAL)
 # ==================================================
-elif menu == "Analisis Profil Lengkap":
+elif menu == "Profil Lengkap":
 
     st.subheader("📈 Analisis Profil Lengkap per Jenjang Pendidikan")
 
@@ -182,7 +182,6 @@ elif menu == "Analisis Profil Lengkap":
     else:
         st.warning("Data untuk jenjang ini tidak tersedia.")
 
-    
     # =============================
     # EXPANDER (BUTTON DROPDOWN)
     # =============================
