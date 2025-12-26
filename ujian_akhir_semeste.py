@@ -78,14 +78,14 @@ if menu == "Dashboard Utama":
     st.pyplot(fig)
 
 # =============================
-# ANALISIS PROFIL LENGKAP
+# PROFIL LENGKAP
 # =============================
-elif menu == "Analisis Profil Lengkap":
+elif menu == "Profil Lengkap":
 
-    st.title("📈 Analisis Profil Lengkap (Berhasil vs Gagal)")
+    st.title("🔍 Profil Lengkap per Jenjang")
 
     selected_level = st.selectbox(
-        "🎓 Pilih Jenjang Pendidikan",
+        "Pilih Jenjang Pendidikan",
         target_levels
     )
 
@@ -93,7 +93,7 @@ elif menu == "Analisis Profil Lengkap":
         subset = dataframe[
             (dataframe["Education Level"] == edu_level) &
             (dataframe["Status_Keberhasilan"] == status)
-        ][column]
+        ][column].dropna()
 
         items = []
         for entry in subset:
@@ -104,72 +104,32 @@ elif menu == "Analisis Profil Lengkap":
             columns=["Item", "Count"]
         )
 
-    if selected_level in df["Education Level"].unique():
+    tab1, tab2 = st.tabs(["✅ Berhasil", "❌ Gagal"])
 
-        fig, axes = plt.subplots(4, 2, figsize=(16, 22))
-        fig.suptitle(
-            f"Analisis Profil Lengkap: {selected_level}",
-            fontsize=20,
-            fontweight="bold"
-        )
+    for tab, status, color in zip(
+        [tab1, tab2],
+        ["Berhasil", "Gagal"],
+        ["Greens_r", "Reds_r"]
+    ):
+        with tab:
+            col1, col2 = st.columns(2)
 
-        # Specialization
-        sns.barplot(
-            data=get_top_items(df, selected_level, "Berhasil", "Specialization"),
-            x="Count", y="Item", ax=axes[0, 0], palette="Greens_r"
-        )
-        axes[0, 0].set_title("Specialization (Berhasil)")
+            with col1:
+                sns.barplot(
+                    data=get_top_items(df, selected_level, status, "Skills"),
+                    x="Count", y="Item", palette=color
+                )
+                st.pyplot(plt.gcf())
+                plt.clf()
 
-        sns.barplot(
-            data=get_top_items(df, selected_level, "Gagal", "Specialization"),
-            x="Count", y="Item", ax=axes[0, 1], palette="Reds_r"
-        )
-        axes[0, 1].set_title("Specialization (Gagal)")
+            with col2:
+                sns.barplot(
+                    data=get_top_items(df, selected_level, status, "Certifications"),
+                    x="Count", y="Item", palette=color
+                )
+                st.pyplot(plt.gcf())
+                plt.clf()
 
-        # Skills
-        sns.barplot(
-            data=get_top_items(df, selected_level, "Berhasil", "Skills"),
-            x="Count", y="Item", ax=axes[1, 0], palette="Greens_r"
-        )
-        axes[1, 0].set_title("Skills (Berhasil)")
-
-        sns.barplot(
-            data=get_top_items(df, selected_level, "Gagal", "Skills"),
-            x="Count", y="Item", ax=axes[1, 1], palette="Reds_r"
-        )
-        axes[1, 1].set_title("Skills (Gagal)")
-
-        # Certifications
-        sns.barplot(
-            data=get_top_items(df, selected_level, "Berhasil", "Certifications"),
-            x="Count", y="Item", ax=axes[2, 0], palette="Greens_r"
-        )
-        axes[2, 0].set_title("Certifications (Berhasil)")
-
-        sns.barplot(
-            data=get_top_items(df, selected_level, "Gagal", "Certifications"),
-            x="Count", y="Item", ax=axes[2, 1], palette="Reds_r"
-        )
-        axes[2, 1].set_title("Certifications (Gagal)")
-
-        # CGPA
-        sns.histplot(
-            df[(df["Education Level"] == selected_level) &
-               (df["Status_Keberhasilan"] == "Berhasil")]["CGPA/Percentage"],
-            ax=axes[3, 0], kde=True, color="green"
-        )
-        axes[3, 0].set_title("Distribusi CGPA (Berhasil)")
-
-        sns.histplot(
-            df[(df["Education Level"] == selected_level) &
-               (df["Status_Keberhasilan"] == "Gagal")]["CGPA/Percentage"],
-            ax=axes[3, 1], kde=True, color="red"
-        )
-        axes[3, 1].set_title("Distribusi CGPA (Gagal)")
-
-        plt.tight_layout()
-        st.pyplot(fig)
-        
 # =============================
 # ANALISIS SKILL
 # =============================
