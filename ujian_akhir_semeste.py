@@ -328,6 +328,59 @@ for p in ax2.patches:
 plt.tight_layout()
 st.pyplot(fig)
 
+# =============================
+# HEATMAP: SPESIALISASI vs KARIER (STREAMLIT SUPPORT)
+# =============================
+st.subheader("🔥 Heatmap Spesialisasi vs Rekomendasi Karier")
+
+with st.expander("📊 Lihat Heatmap Korelasi", expanded=True):
+
+    # Filter opsional berdasarkan jenjang
+    selected_level = st.selectbox(
+        "🎓 Filter Jenjang Pendidikan (Opsional)",
+        options=["Semua"] + target_levels
+    )
+
+    if selected_level != "Semua":
+        heat_df = df[df["Education Level"] == selected_level]
+    else:
+        heat_df = df.copy()
+
+    if heat_df.empty:
+        st.warning("⚠️ Data tidak tersedia untuk pilihan ini.")
+    else:
+        # Membuat tabel silang
+        ct = pd.crosstab(
+            heat_df["Specialization"],
+            heat_df["Recommended Career"]
+        )
+
+        if ct.empty:
+            st.warning("⚠️ Crosstab kosong, tidak dapat ditampilkan.")
+        else:
+            fig, ax = plt.subplots(figsize=(14, 8))
+
+            sns.heatmap(
+                ct,
+                annot=True,
+                fmt="d",
+                cmap="YlGnBu",
+                linewidths=0.5,
+                cbar=True,
+                ax=ax
+            )
+
+            ax.set_title(
+                "Heatmap: Korelasi Spesialisasi vs Rekomendasi Karier",
+                fontsize=16,
+                fontweight="bold"
+            )
+            ax.set_xlabel("Rekomendasi Karier")
+            ax.set_ylabel("Spesialisasi")
+
+            st.pyplot(fig)
+
+
 # -----------------------------
 # TABEL RINGKASAN
 # -----------------------------
