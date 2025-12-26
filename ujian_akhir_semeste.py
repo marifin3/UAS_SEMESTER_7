@@ -54,12 +54,6 @@ summary.columns = ["Education Level", "Total Data"]
 
 st.dataframe(summary, use_container_width=True)
 
-
-st.subheader("📊 Analisis Nilai Terpopuler per Jenjang Pendidikan")
-...
-st.dataframe(summary_df, use_container_width=True)
-
-
 # =============================
 # ANALISIS PROFIL LENGKAP (BERHASIL vs GAGAL)
 # =============================
