@@ -186,29 +186,50 @@ elif menu == "Analisis Skill":
     diff_skill.sort_values().plot(kind="barh", ax=ax)
     st.pyplot(fig)
 
-# =============================
-# VISUALISASI GLOBAL
-# =============================
-elif menu == "Visualisasi Global":
+# -----------------------------
+# VISUALISASI
+# -----------------------------
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
 
-    st.title("🌍 Visualisasi Global")
+# --- PIE CHART ---
+colors = sns.color_palette("pastel")[0:5]
+ax1.pie(
+    dist_df["Percentage"],
+    labels=dist_df["Education Level"],
+    autopct="%1.1f%%",
+    startangle=140,
+    colors=colors,
+    explode=[0.05] * len(dist_df)
+)
+ax1.set_title("Proporsi Data per Jenjang Pendidikan", fontsize=14, fontweight="bold")
 
-    tab1, tab2 = st.tabs(["Heatmap", "WordCloud"])
+# --- STACKED BAR ---
+success_pct.plot(
+    kind="bar",
+    stacked=True,
+    ax=ax2,
+    color=["#2ca02c", "#d62728"]
+)
 
-    with tab1:
-        ct = pd.crosstab(df["Education Level"], df["Recommended Career"])
-        fig, ax = plt.subplots(figsize=(14, 6))
-        sns.heatmap(ct, cmap="YlGnBu", ax=ax)
-        st.pyplot(fig)
+ax2.set_title("Persentase Berhasil vs Gagal per Jenjang", fontsize=14, fontweight="bold")
+ax2.set_ylabel("Persentase (%)")
+ax2.set_xlabel("Jenjang Pendidikan")
+ax2.legend(title="Status", bbox_to_anchor=(1.05, 1))
 
-    with tab2:
-        wc = WordCloud(
-            width=900,
-            height=400,
-            background_color="white"
-        ).generate(" ".join(df["Skills"].astype(str)))
+# Label persentase
+for p in ax2.patches:
+    height = p.get_height()
+    if height > 0:
+        ax2.text(
+            p.get_x() + p.get_width() / 2,
+            p.get_y() + height / 2,
+            f"{height:.1f}%",
+            ha="center",
+            va="center",
+            color="white",
+            fontsize=10,
+            fontweight="bold"
+        )
 
-        fig, ax = plt.subplots(figsize=(12, 6))
-        ax.imshow(wc)
-        ax.axis("off")
-        st.pyplot(fig)
+plt.tight_layout()
+st.pyplot(fig)
