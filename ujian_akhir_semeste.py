@@ -260,24 +260,6 @@ fig, ax = plt.subplots(figsize=(12, 6))
 career_dist.plot(kind="bar", stacked=True, ax=ax)
 st.pyplot(fig)
 
-
-# =============================
-# PERSENTASE & DISTRIBUSI DATA
-# =============================
-st.subheader("📊 Distribusi & Tingkat Keberhasilan per Jenjang Pendidikan")
-
-# -----------------------------
-# PEMBERSIHAN & FILTER
-# -----------------------------
-df["Education Level"] = df["Education Level"].str.strip()
-
-target_levels = ["Intermediate", "Master's", "Bachelor's", "Matric", "PhD"]
-df = df[df["Education Level"].isin(target_levels)].copy()
-
-df["Status_Keberhasilan"] = np.where(
-    df["CGPA/Percentage"] >= 80, "Berhasil", "Gagal"
-)
-
 # -----------------------------
 # PERHITUNGAN PERSENTASE
 # -----------------------------
@@ -354,9 +336,6 @@ st.dataframe(
     success_pct.round(2),
     use_container_width=True
 )
-
-
-
 
 # =============================
 # WORDCLOUD
