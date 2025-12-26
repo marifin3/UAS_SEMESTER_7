@@ -286,7 +286,7 @@ else:
 # =============================
 # ANALISIS SKILL
 # =============================
-elif menu == "Analisis Skill":
+if menu == "Analisis Skill":
 
     st.title("🧠 Analisis Skill Pembeda")
 
@@ -311,7 +311,7 @@ elif menu == "Analisis Skill":
 # =============================
 # VISUALISASI GLOBAL
 # =============================
-elif menu == "Visualisasi Global":
+if menu == "Visualisasi Global":
 
     st.title("🌍 Visualisasi Global")
 
