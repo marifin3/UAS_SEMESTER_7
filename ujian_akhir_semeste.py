@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -190,22 +191,6 @@ for jenjang in list_jenjang:
 
     plt.tight_layout()
     st.pyplot(fig)
-
-
-# =============================
-# SUMMARY TABLE
-# =============================
-st.subheader("Ringkasan Jenjang Pendidikan")
-
-summary = (
-    df["Education Level"]
-    .value_counts()
-    .reindex(target_levels)
-    .reset_index()
-)
-summary.columns = ["Education Level", "Total Data"]
-
-st.dataframe(summary, use_container_width=True)
 
 # =============================
 # TOP SKILL DIFFERENCE
