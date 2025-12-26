@@ -28,6 +28,15 @@ def load_data():
     except Exception as e:
         st.error(f"Error: Tidak dapat menemukan file '{file_path}'. Pastikan file sudah di-upload ke GitHub.")
         return None
+
+# 3. MEMANGGIL DATA KE DALAM VARIABEL
+df = load_data()
+
+# 4. CEK JIKA DATA BERHASIL DI-LOAD SEBELUM PROSES LANJUTAN
+if df is not None:
+    st.success("Data berhasil dimuat!")
+    # ... Lanjutkan kode pembersihan dan visualisasi Anda di bawah sini
+
 # 2. PEMBERSIHAN DATA
 # Menghapus spasi yang tidak terlihat agar tidak ada duplikat nama
 df['Education Level'] = df['Education Level'].str.strip()
