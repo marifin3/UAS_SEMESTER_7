@@ -7,19 +7,33 @@ from collections import Counter
 from wordcloud import WordCloud
 
 # =============================
-# KONFIGURASI AWAL
+# PAGE CONFIG
 # =============================
 st.set_page_config(
-    page_title="Career Analysis Dashboard",
+    page_title="Career Path Analysis",
     layout="wide"
 )
 
 # =============================
+# SIDEBAR
+# =============================
+st.sidebar.title("🎓 Career Analysis")
+menu = st.sidebar.radio(
+    "Navigasi",
+    ["Dashboard Utama", "Profil Lengkap", "Analisis Skill", "Visualisasi Global"]
+)
+
+st.sidebar.markdown("---")
+st.sidebar.caption("© Career Analysis Dashboard")
+
+# =============================
 # LOAD DATA
 # =============================
+FILE_PATH = "career_dataset_large.xlsx"
+
 @st.cache_data
 def load_data():
-    return pd.read_excel("career_dataset_large.xlsx")
+    return pd.read_excel(FILE_PATH, engine="openpyxl")
 
 df = load_data()
 
@@ -32,44 +46,36 @@ df["Specialization"] = df["Specialization"].fillna("None")
 df["Skills"] = df["Skills"].fillna("None")
 
 df["Status_Keberhasilan"] = np.where(
-    df["CGPA/Percentage"] >= 80,
-    "Berhasil",
-    "Gagal"
+    df["CGPA/Percentage"] >= 80, "Berhasil", "Gagal"
 )
 
 target_levels = ["Intermediate", "Master's", "Bachelor's", "Matric", "PhD"]
 df = df[df["Education Level"].isin(target_levels)]
 
 # =============================
-# SIDEBAR MENU
+# DASHBOARD UTAMA
 # =============================
-st.sidebar.title("📌 Menu")
-menu = st.sidebar.radio(
-    "Pilih Analisis",
-    [
-        "Ringkasan Data",
-        "Analisis Profil Lengkap",
-        "Analisis Skill",
-        "Visualisasi Global"
-    ]
-)
+if menu == "Dashboard Utama":
 
-# =============================
-# RINGKASAN DATA
-# =============================
-if menu == "Ringkasan Data":
+    st.title("📊 Career Path Analysis Dashboard")
+    st.caption("Ringkasan cepat data & performa karier")
 
-    st.title("📊 Ringkasan Jenjang Pendidikan")
+    col1, col2, col3 = st.columns(3)
 
-    summary = (
-        df["Education Level"]
-        .value_counts()
-        .reindex(target_levels)
-        .reset_index()
-    )
-    summary.columns = ["Education Level", "Total Data"]
+    col1.metric("Total Data", len(df))
+    col2.metric("Tingkat Berhasil (%)",
+                round((df["Status_Keberhasilan"] == "Berhasil").mean() * 100, 2))
+    col3.metric("Jumlah Karier Unik", df["Recommended Career"].nunique())
 
-    st.dataframe(summary, use_container_width=True)
+    st.markdown("---")
+
+    st.subheader("📋 Distribusi Jenjang Pendidikan")
+    summary = df["Education Level"].value_counts().reindex(target_levels)
+
+    fig, ax = plt.subplots(figsize=(10, 4))
+    summary.plot(kind="bar", ax=ax)
+    ax.set_ylabel("Jumlah Data")
+    st.pyplot(fig)
 
 # =============================
 # ANALISIS PROFIL LENGKAP
@@ -163,7 +169,7 @@ elif menu == "Analisis Profil Lengkap":
 
         plt.tight_layout()
         st.pyplot(fig)
-
+        
 # =============================
 # ANALISIS SKILL
 # =============================
@@ -180,56 +186,39 @@ elif menu == "Analisis Skill":
     diff_skill = (
         extract_skills(df[df["Status_Keberhasilan"] == "Berhasil"]["Skills"]) -
         extract_skills(df[df["Status_Keberhasilan"] == "Gagal"]["Skills"])
-    ).dropna().head(10)
+    ).dropna().sort_values(ascending=False).head(10)
 
     fig, ax = plt.subplots(figsize=(10, 5))
-    diff_skill.sort_values().plot(kind="barh", ax=ax)
+    diff_skill.plot(kind="barh", ax=ax)
+    ax.invert_yaxis()
     st.pyplot(fig)
 
-# -----------------------------
-# VISUALISASI
-# -----------------------------
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
+    st.info("Skill dengan nilai positif lebih dominan pada individu yang berhasil.")
 
-# --- PIE CHART ---
-colors = sns.color_palette("pastel")[0:5]
-ax1.pie(
-    dist_df["Percentage"],
-    labels=dist_df["Education Level"],
-    autopct="%1.1f%%",
-    startangle=140,
-    colors=colors,
-    explode=[0.05] * len(dist_df)
-)
-ax1.set_title("Proporsi Data per Jenjang Pendidikan", fontsize=14, fontweight="bold")
+# =============================
+# VISUALISASI GLOBAL
+# =============================
+elif menu == "Visualisasi Global":
 
-# --- STACKED BAR ---
-success_pct.plot(
-    kind="bar",
-    stacked=True,
-    ax=ax2,
-    color=["#2ca02c", "#d62728"]
-)
+    st.title("🌍 Visualisasi Global")
 
-ax2.set_title("Persentase Berhasil vs Gagal per Jenjang", fontsize=14, fontweight="bold")
-ax2.set_ylabel("Persentase (%)")
-ax2.set_xlabel("Jenjang Pendidikan")
-ax2.legend(title="Status", bbox_to_anchor=(1.05, 1))
+    tab1, tab2 = st.tabs(["📦 Distribusi Karier", "☁️ WordCloud"])
 
-# Label persentase
-for p in ax2.patches:
-    height = p.get_height()
-    if height > 0:
-        ax2.text(
-            p.get_x() + p.get_width() / 2,
-            p.get_y() + height / 2,
-            f"{height:.1f}%",
-            ha="center",
-            va="center",
-            color="white",
-            fontsize=10,
-            fontweight="bold"
-        )
+    with tab1:
+        ct = pd.crosstab(df["Education Level"], df["Recommended Career"])
+        fig, ax = plt.subplots(figsize=(14, 6))
+        sns.heatmap(ct, cmap="YlGnBu", ax=ax)
+        st.pyplot(fig)
 
-plt.tight_layout()
-st.pyplot(fig)
+    with tab2:
+        all_skills = " ".join(df["Skills"].astype(str))
+        wc = WordCloud(
+            width=900,
+            height=400,
+            background_color="white"
+        ).generate(all_skills)
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.imshow(wc)
+        ax.axis("off")
+        st.pyplot(fig)
