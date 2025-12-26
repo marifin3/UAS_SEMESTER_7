@@ -14,16 +14,20 @@ import seaborn as sns
 from collections import Counter
 from wordcloud import WordCloud
 
-# 1. MEMBACA FILE EXCEL
-# Pastikan Anda sudah mengupload file ini di panel sebelah kiri Google Colab
+# 1. PENGATURAN PATH FILE
+# Nama file harus sama persis dengan yang ada di GitHub
 file_path = 'career_dataset_large.xlsx'
 
-try:
-    df = pd.read_excel(file_path)
-    print("File Excel Berhasil Dibaca!")
-except:
-    print("File tidak ditemukan. Silakan upload file dengan nama 'career_dataset_large.xlsx'")
-
+# 2. FUNGSI LOAD DATA DENGAN CACHE
+@st.cache_data
+def load_data():
+    try:
+        # Menambahkan engine='openpyxl' sangat penting untuk file .xlsx
+        df = pd.read_excel(file_path, engine='openpyxl')
+        return df
+    except Exception as e:
+        st.error(f"Error: Tidak dapat menemukan file '{file_path}'. Pastikan file sudah di-upload ke GitHub.")
+        return None
 # 2. PEMBERSIHAN DATA
 # Menghapus spasi yang tidak terlihat agar tidak ada duplikat nama
 df['Education Level'] = df['Education Level'].str.strip()
@@ -42,7 +46,7 @@ summary_table.columns = ['Education Level', 'Total Data']
 
 # 5. MENAMPILKAN HASIL
 print("Tabel Jenjang Pendidikan (Sesuai Filter):")
-display(summary_table)
+st.dataframe(summary_table)
 
 print("\nContoh Data Mentah Setelah Filter:")
 display(df_filtered.head(20))
@@ -101,14 +105,14 @@ plt.xlabel('Selisih Frekuensi (Berhasil - Gagal)')
 plt.ylabel('Nama Skill')
 plt.grid(axis='x', linestyle='--', alpha=0.7)
 plt.gca().invert_yaxis() # Agar yang tertinggi ada di atas
-plt.show()
+st.pyplot(fig)
 
 plt.figure(figsize=(15, 7))
 sns.boxplot(data=df, x='Recommended Career', y='CGPA/Percentage', palette='Set3')
 plt.title('Sebaran CGPA Berdasarkan Rekomendasi Karier', fontsize=15, fontweight='bold')
 plt.xticks(rotation=45)
 plt.grid(axis='y', linestyle='--', alpha=0.7)
-plt.show()
+st.pyplot(fig)
 
 # Membuat tabel silang (Crosstab)
 plt.figure(figsize=(14, 8))
@@ -119,7 +123,7 @@ sns.heatmap(ct, annot=True, cmap='YlGnBu', fmt='d', cbar=True)
 plt.title('Heatmap: Korelasi Spesialisasi vs Rekomendasi Karier', fontsize=15, fontweight='bold')
 plt.xlabel('Rekomendasi Karier')
 plt.ylabel('Spesialisasi')
-plt.show()
+st.pyplot(fig)
 
 # Membuat Stacked Bar Chart
 plt.figure(figsize=(15, 8))
@@ -131,7 +135,7 @@ plt.ylabel('Persentase (%)')
 plt.xlabel('Jenjang Pendidikan')
 plt.legend(title='Karier', bbox_to_anchor=(1.05, 1), loc='upper left')
 plt.xticks(rotation=0)
-plt.show()
+st.pyplot(fig)
 
 # 2. PENGOLAHAN DATA
 # Membersihkan spasi pada Education Level agar tidak ada duplikat
@@ -209,7 +213,7 @@ for jenjang in list_jenjang:
         axes[3, 1].set_title(f'Distribusi CGPA ({jenjang} - Gagal)')
 
         plt.tight_layout()
-        plt.show()
+        st.pyplot(fig)
         print("\n" + "="*100 + "\n")
     else:
         print(f"Peringatan: Level {jenjang} tidak ditemukan dalam data.")
@@ -268,7 +272,7 @@ for p in ax2.patches:
                 fontsize=11)
 
 plt.tight_layout()
-plt.show()
+st.pyplot(fig)
 
 # Menampilkan tabel hasil perhitungan di konsol
 print("\n--- RINGKASAN PERSENTASE KEBERHASILAN ---")
@@ -285,4 +289,4 @@ plt.figure(figsize=(12, 6))
 plt.imshow(wordcloud, interpolation='bilinear')
 plt.axis('off')
 plt.title('Word Cloud: Skill yang Paling Sering Muncul', fontsize=16, fontweight='bold')
-plt.show()
+st.pyplot(fig)
