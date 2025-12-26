@@ -6,6 +6,56 @@ import seaborn as sns
 from collections import Counter
 from wordcloud import WordCloud
 
+st.subheader("📊 Ringkasan Jenjang Pendidikan")
+
+# =============================
+# 1. MEMBACA FILE EXCEL
+# =============================
+FILE_PATH = "career_dataset_large.xlsx"
+
+@st.cache_data
+def load_data():
+    return pd.read_excel(FILE_PATH, engine="openpyxl")
+
+try:
+    df = load_data()
+    st.success("File Excel berhasil dimuat")
+except Exception:
+    st.error("File tidak ditemukan. Pastikan 'career_dataset_large.xlsx' ada di repository.")
+    st.stop()
+
+# =============================
+# 2. PEMBERSIHAN DATA
+# =============================
+df["Education Level"] = df["Education Level"].str.strip()
+
+# =============================
+# 3. FILTER DATA
+# =============================
+target_levels = ["Intermediate", "Master's", "Bachelor's", "Matric", "PhD"]
+df_filtered = df[df["Education Level"].isin(target_levels)].copy()
+
+# =============================
+# 4. TABEL RINGKASAN
+# =============================
+summary_table = (
+    df_filtered["Education Level"]
+    .value_counts()
+    .reindex(target_levels)
+    .reset_index()
+)
+summary_table.columns = ["Education Level", "Total Data"]
+
+# =============================
+# 5. TAMPILKAN HASIL
+# =============================
+st.markdown("### 📌 Tabel Jenjang Pendidikan (Sesuai Filter)")
+st.dataframe(summary_table, use_container_width=True)
+
+st.markdown("### 📄 Contoh Data Setelah Filter (20 baris pertama)")
+st.dataframe(df_filtered.head(20), use_container_width=True)
+
+
 st.set_page_config(page_title="Career Analysis", layout="wide")
 
 # =============================
