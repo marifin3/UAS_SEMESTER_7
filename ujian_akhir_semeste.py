@@ -286,27 +286,38 @@ else:
 # =============================
 # ANALISIS SKILL
 # =============================
-elif menu == "Analisis Skill":
+if menu == "Analisis Skill":
 
     st.title("🧠 Analisis Skill Pembeda")
 
     def extract_skills(series):
         items = []
-        for s in series:
+        for s in series.dropna():
             items.extend([i.strip() for i in str(s).split(",")])
         return pd.Series(items).value_counts()
 
-    diff_skill = (
-        extract_skills(df[df["Status_Keberhasilan"] == "Berhasil"]["Skills"]) -
-        extract_skills(df[df["Status_Keberhasilan"] == "Gagal"]["Skills"])
-    ).dropna().sort_values(ascending=False).head(10)
+    skill_berhasil = extract_skills(
+        df[df["Status_Keberhasilan"] == "Berhasil"]["Skills"]
+    )
+
+    skill_gagal = extract_skills(
+        df[df["Status_Keberhasilan"] == "Gagal"]["Skills"]
+    )
+
+    diff_skill = (skill_berhasil - skill_gagal) \
+        .dropna() \
+        .sort_values(ascending=False) \
+        .head(10)
 
     fig, ax = plt.subplots(figsize=(10, 5))
     diff_skill.plot(kind="barh", ax=ax)
     ax.invert_yaxis()
+    ax.set_xlabel("Selisih Frekuensi")
+    ax.set_title("Top 10 Skill Pembeda (Berhasil vs Gagal)")
     st.pyplot(fig)
 
-    st.info("Skill dengan nilai positif lebih dominan pada individu yang berhasil.")
+    st.info("📌 Skill bernilai positif lebih dominan pada individu yang BERHASIL.")
+
 
 # =============================
 # VISUALISASI GLOBAL
@@ -321,6 +332,7 @@ if menu == "Visualisasi Global":
         ct = pd.crosstab(df["Education Level"], df["Recommended Career"])
         fig, ax = plt.subplots(figsize=(14, 6))
         sns.heatmap(ct, cmap="YlGnBu", ax=ax)
+        ax.set_title("Heatmap Jenjang Pendidikan vs Karier")
         st.pyplot(fig)
 
     with tab2:
@@ -328,10 +340,12 @@ if menu == "Visualisasi Global":
         wc = WordCloud(
             width=900,
             height=400,
-            background_color="white"
+            background_color="white",
+            colormap="viridis"
         ).generate(all_skills)
 
         fig, ax = plt.subplots(figsize=(12, 6))
         ax.imshow(wc)
         ax.axis("off")
         st.pyplot(fig)
+
