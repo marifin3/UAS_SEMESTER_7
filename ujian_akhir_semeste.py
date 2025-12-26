@@ -36,6 +36,59 @@ df["Education Level"] = df["Education Level"].str.strip()
 target_levels = ["Intermediate", "Master's", "Bachelor's", "Matric", "PhD"]
 df_filtered = df[df["Education Level"].isin(target_levels)].copy()
 
+st.subheader("📈 Analisis Nilai Terpopuler per Jenjang Pendidikan")
+
+# =============================
+# KONFIGURASI
+# =============================
+cols = [
+    'Specialization',
+    'Skills',
+    'Certifications',
+    'CGPA/Percentage',
+    'Recommended Career'
+]
+
+target_levels = ["Intermediate", "Master's", "Bachelor's", "Matric", "PhD"]
+
+results = []
+
+# =============================
+# PROSES ANALISIS
+# =============================
+for level in target_levels:
+    level_df = df[df['Education Level'] == level]
+
+    if level_df.empty:
+        continue
+
+    for col in cols:
+        if col not in level_df.columns:
+            continue
+
+        counts = level_df[col].value_counts(dropna=True)
+
+        if counts.empty:
+            continue
+
+        results.append({
+            'Jenjang': level,
+            'Kolom': col,
+            'Jumlah Unik': level_df[col].nunique(),
+            'Nilai Terpopuler': counts.index[0],
+            'Frekuensi': int(counts.iloc[0])
+        })
+
+# =============================
+# TAMPILKAN HASIL
+# =============================
+summary_df = pd.DataFrame(results)
+
+if summary_df.empty:
+    st.warning("Tidak ada data untuk ditampilkan.")
+else:
+    st.dataframe(summary_df, use_container_width=True)
+    
 # =============================
 # 4. TABEL RINGKASAN
 # =============================
