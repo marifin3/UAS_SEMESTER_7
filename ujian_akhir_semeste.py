@@ -280,54 +280,6 @@ success_pct = (
     .div(success_counts.sum(axis=1), axis=0) * 100
 ).reindex(target_levels)
 
-# -----------------------------
-# VISUALISASI
-# -----------------------------
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
-
-# --- PIE CHART ---
-colors = sns.color_palette("pastel")[0:5]
-ax1.pie(
-    dist_df["Percentage"],
-    labels=dist_df["Education Level"],
-    autopct="%1.1f%%",
-    startangle=140,
-    colors=colors,
-    explode=[0.05] * len(dist_df)
-)
-ax1.set_title("Proporsi Data per Jenjang Pendidikan", fontsize=14, fontweight="bold")
-
-# --- STACKED BAR ---
-success_pct.plot(
-    kind="bar",
-    stacked=True,
-    ax=ax2,
-    color=["#2ca02c", "#d62728"]
-)
-
-ax2.set_title("Persentase Berhasil vs Gagal per Jenjang", fontsize=14, fontweight="bold")
-ax2.set_ylabel("Persentase (%)")
-ax2.set_xlabel("Jenjang Pendidikan")
-ax2.legend(title="Status", bbox_to_anchor=(1.05, 1))
-
-# Label persentase
-for p in ax2.patches:
-    height = p.get_height()
-    if height > 0:
-        ax2.text(
-            p.get_x() + p.get_width() / 2,
-            p.get_y() + height / 2,
-            f"{height:.1f}%",
-            ha="center",
-            va="center",
-            color="white",
-            fontsize=10,
-            fontweight="bold"
-        )
-
-plt.tight_layout()
-st.pyplot(fig)
-
 # =============================
 # HEATMAP: SPESIALISASI vs KARIER (STREAMLIT SUPPORT)
 # =============================
