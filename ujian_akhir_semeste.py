@@ -60,9 +60,10 @@ st.dataframe(summary, use_container_width=True)
 st.header("🔍 Analisis Profil Lengkap per Jenjang Pendidikan")
 st.caption("Perbandingan karakteristik individu **Berhasil** dan **Gagal**")
 
-def get_top_items(dataframe, edu_level, status, column, top_n=5):
+# Mengubah top_n dari 5 menjadi 3
+def get_top_items(dataframe, edu_level, status, column, top_n=3):
     subset = dataframe[
-        (dataframe["Education Level"] == edu_level) &
+        (dataframe["Education Level"] == edu_level) & 
         (dataframe["Status_Keberhasilan"] == status)
     ][column].dropna()
 
@@ -78,62 +79,63 @@ for jenjang in target_levels:
         continue
 
     with st.expander(f"🎓 {jenjang}"):
-        fig, axes = plt.subplots(4, 2, figsize=(16, 22))
+        # Menyesuaikan figsize sedikit agar grafik top 3 tidak terlalu renggang
+        fig, axes = plt.subplots(4, 2, figsize=(16, 18)) 
         fig.suptitle(
             f"Profil Lengkap: {jenjang} (Berhasil vs Gagal)",
             fontsize=18,
             fontweight="bold"
         )
 
-        # Specialization
+        # Specialization (Sekarang otomatis mengambil Top 3)
         sns.barplot(
             data=get_top_items(df, jenjang, "Berhasil", "Specialization"),
             x="Count", y="Item", ax=axes[0, 0], palette="Greens_r"
         )
-        axes[0, 0].set_title("Top Specialization (Berhasil)")
+        axes[0, 0].set_title("Top 3 Specialization (Berhasil)")
 
         sns.barplot(
             data=get_top_items(df, jenjang, "Gagal", "Specialization"),
             x="Count", y="Item", ax=axes[0, 1], palette="Reds_r"
         )
-        axes[0, 1].set_title("Top Specialization (Gagal)")
+        axes[0, 1].set_title("Top 3 Specialization (Gagal)")
 
         # Skills
         sns.barplot(
             data=get_top_items(df, jenjang, "Berhasil", "Skills"),
             x="Count", y="Item", ax=axes[1, 0], palette="Greens_r"
         )
-        axes[1, 0].set_title("Top Skills (Berhasil)")
+        axes[1, 0].set_title("Top 3 Skills (Berhasil)")
 
         sns.barplot(
             data=get_top_items(df, jenjang, "Gagal", "Skills"),
             x="Count", y="Item", ax=axes[1, 1], palette="Reds_r"
         )
-        axes[1, 1].set_title("Top Skills (Gagal)")
+        axes[1, 1].set_title("Top 3 Skills (Gagal)")
 
         # Certifications
         sns.barplot(
             data=get_top_items(df, jenjang, "Berhasil", "Certifications"),
             x="Count", y="Item", ax=axes[2, 0], palette="Greens_r"
         )
-        axes[2, 0].set_title("Top Certifications (Berhasil)")
+        axes[2, 0].set_title("Top 3 Certifications (Berhasil)")
 
         sns.barplot(
             data=get_top_items(df, jenjang, "Gagal", "Certifications"),
             x="Count", y="Item", ax=axes[2, 1], palette="Reds_r"
         )
-        axes[2, 1].set_title("Top Certifications (Gagal)")
+        axes[2, 1].set_title("Top 3 Certifications (Gagal)")
 
-        # CGPA
+        # CGPA (Distribusi tetap sama karena berupa histogram)
         sns.histplot(
-            df[(df["Education Level"] == jenjang) &
+            df[(df["Education Level"] == jenjang) & 
                (df["Status_Keberhasilan"] == "Berhasil")]["CGPA/Percentage"],
             kde=True, ax=axes[3, 0], color="green"
         )
         axes[3, 0].set_title("Distribusi CGPA (Berhasil)")
 
         sns.histplot(
-            df[(df["Education Level"] == jenjang) &
+            df[(df["Education Level"] == jenjang) & 
                (df["Status_Keberhasilan"] == "Gagal")]["CGPA/Percentage"],
             kde=True, ax=axes[3, 1], color="red"
         )
