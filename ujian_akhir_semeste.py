@@ -21,7 +21,7 @@ try:
     df = load_data()
     st.success("Data berhasil dimuat")
 except Exception as e:
-    st.error("File tidak ditemukan / gagal dibaca")
+    st.error(f"File tidak ditemukan / gagal dibaca: {e}")
     st.stop()
 
 # =============================
@@ -32,6 +32,7 @@ df["Certifications"] = df["Certifications"].fillna("None")
 df["Specialization"] = df["Specialization"].fillna("None")
 df["Skills"] = df["Skills"].fillna("None")
 
+# Feature Engineering sesuai kriteria laporan
 df["Status_Keberhasilan"] = np.where(
     df["CGPA/Percentage"] >= 80, "Berhasil", "Gagal"
 )
@@ -61,7 +62,6 @@ st.header("🔍 Analisis Profil Lengkap per Jenjang Pendidikan")
 st.caption("Perbandingan karakteristik individu **Berhasil** dan **Gagal**")
 
 def get_top_items(dataframe, edu_level, status, column, top_n=3):
-    # Mengambil data yang tidak kosong (NaN)
     subset = dataframe[
         (dataframe["Education Level"] == edu_level) & 
         (dataframe["Status_Keberhasilan"] == status)
@@ -69,14 +69,11 @@ def get_top_items(dataframe, edu_level, status, column, top_n=3):
 
     items = []
     for entry in subset:
-        # Pecah string berdasarkan koma dan hapus spasi di awal/akhir
         parts = [i.strip() for i in str(entry).split(",")]
         for p in parts:
-            # FILTER: Abaikan jika teksnya 'none', 'nan', atau kosong
             if p.lower() not in ["none", "nan", ""] and p is not None:
                 items.append(p)
 
-    # Hitung frekuensi data yang sudah bersih
     counts = Counter(items).most_common(top_n)
     return pd.DataFrame(counts, columns=["Item", "Count"])
 
@@ -85,7 +82,6 @@ for jenjang in target_levels:
         continue
 
     with st.expander(f"🎓 {jenjang}"):
-        # Ukuran figure disesuaikan untuk Top 3 (lebih pendek dari sebelumnya)
         fig, axes = plt.subplots(4, 2, figsize=(16, 18))
         fig.suptitle(
             f"Profil Lengkap: {jenjang} (Berhasil vs Gagal)",
@@ -132,7 +128,7 @@ for jenjang in target_levels:
         )
         axes[2, 1].set_title("Top 3 Certifications (Gagal)")
 
-        # 4. Distribusi CGPA (Tetap menggunakan semua data numerik)
+        # 4. Distribusi CGPA
         sns.histplot(
             df[(df["Education Level"] == jenjang) & 
                (df["Status_Keberhasilan"] == "Berhasil")]["CGPA/Percentage"],
@@ -153,41 +149,21 @@ for jenjang in target_levels:
 st.divider()
 
 # =============================
-# ANALISIS NILAI TERPOPULER (STREAMLIT)
+# ANALISIS NILAI TERPOPULER
 # =============================
-import streamlit as st
-import pandas as pd
-
 st.subheader("📊 Analisis Nilai Terpopuler per Jenjang Pendidikan")
 
-# Kolom yang ingin dianalisis
-cols = [
-    'Specialization',
-    'Skills',
-    'Certifications',
-    'CGPA/Percentage',
-    'Recommended Career'
-]
-target_levels = ["Intermediate", "Master's", "Bachelor's", "Matric", "PhD"]
-
+cols = ['Specialization', 'Skills', 'Certifications', 'CGPA/Percentage', 'Recommended Career']
 results = []
 
 for level in target_levels:
     level_df = df[df['Education Level'] == level]
-
-    # Lewati jika tidak ada data
-    if level_df.empty:
-        continue
+    if level_df.empty: continue
 
     for col in cols:
-        # Pastikan kolom ada
-        if col not in level_df.columns:
-            continue
-
+        if col not in level_df.columns: continue
         counts = level_df[col].value_counts(dropna=True)
-
-        if counts.empty:
-            continue
+        if counts.empty: continue
 
         results.append({
             'Jenjang': level,
@@ -197,91 +173,55 @@ for level in target_levels:
             'Frekuensi (Sama)': int(counts.iloc[0])
         })
 
-# Konversi ke DataFrame
 summary_df = pd.DataFrame(results)
-
-# Tampilkan di Streamlit
 if summary_df.empty:
     st.warning("Tidak ada data yang dapat ditampilkan.")
 else:
     st.dataframe(summary_df, use_container_width=True)
 
 # =============================
-# HEATMAP: SPESIALISASI vs KARIER (STREAMLIT SUPPORT)
+# FIX: HITUNG PERSENTASE KEBERHASILAN (Solusi NameError)
+# =============================
+# Menghitung tabel silang dan persentase keberhasilan sebelum dipanggil
+success_counts = pd.crosstab(df["Education Level"], df["Status_Keberhasilan"])
+success_pct = success_counts.div(success_counts.sum(axis=1), axis=0) * 100
+success_pct = success_pct.reindex(target_levels)
+
+# =============================
+# HEATMAP: SPESIALISASI vs KARIER
 # =============================
 st.subheader("🔥 Heatmap Spesialisasi vs Rekomendasi Karier")
 
 with st.expander("📊 Lihat Heatmap Korelasi", expanded=True):
-
-    # Filter opsional berdasarkan jenjang
     selected_level = st.selectbox(
         "🎓 Filter Jenjang Pendidikan (Opsional)",
         options=["Semua"] + target_levels
     )
 
-    if selected_level != "Semua":
-        heat_df = df[df["Education Level"] == selected_level]
-    else:
-        heat_df = df.copy()
+    heat_df = df if selected_level == "Semua" else df[df["Education Level"] == selected_level]
 
     if heat_df.empty:
-        st.warning("⚠️ Data tidak tersedia untuk pilihan ini.")
+        st.warning("⚠️ Data tidak tersedia.")
     else:
-        # Membuat tabel silang
-        ct = pd.crosstab(
-            heat_df["Specialization"],
-            heat_df["Recommended Career"]
-        )
-
-        if ct.empty:
-            st.warning("⚠️ Crosstab kosong, tidak dapat ditampilkan.")
-        else:
+        ct = pd.crosstab(heat_df["Specialization"], heat_df["Recommended Career"])
+        if not ct.empty:
             fig, ax = plt.subplots(figsize=(14, 8))
-
-            sns.heatmap(
-                ct,
-                annot=True,
-                fmt="d",
-                cmap="YlGnBu",
-                linewidths=0.5,
-                cbar=True,
-                ax=ax
-            )
-
-            ax.set_title(
-                "Heatmap: Korelasi Spesialisasi vs Rekomendasi Karier",
-                fontsize=16,
-                fontweight="bold"
-            )
-            ax.set_xlabel("Rekomendasi Karier")
-            ax.set_ylabel("Spesialisasi")
-
+            sns.heatmap(ct, annot=True, fmt="d", cmap="YlGnBu", linewidths=0.5, ax=ax)
+            ax.set_title("Heatmap: Korelasi Spesialisasi vs Rekomendasi Karier", fontsize=16, fontweight="bold")
             st.pyplot(fig)
 
-
 # -----------------------------
-# TABEL RINGKASAN
+# TABEL RINGKASAN (Sekarang success_pct sudah ada)
 # -----------------------------
 st.markdown("### 📋 Tabel Persentase Keberhasilan")
-st.dataframe(
-    success_pct.round(2),
-    use_container_width=True
-)
+st.dataframe(success_pct.round(2), use_container_width=True)
 
 # =============================
 # WORDCLOUD
 # =============================
 st.subheader("WordCloud Skills")
-
 all_skills = " ".join(df["Skills"].astype(str))
-
-wc = WordCloud(
-    width=800,
-    height=400,
-    background_color="white",
-    colormap="viridis"
-).generate(all_skills)
-
+wc = WordCloud(width=800, height=400, background_color="white", colormap="viridis").generate(all_skills)
 fig, ax = plt.subplots(figsize=(12, 6))
 ax.imshow(wc)
 ax.axis("off")
