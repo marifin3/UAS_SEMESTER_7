@@ -206,64 +206,6 @@ if summary_df.empty:
 else:
     st.dataframe(summary_df, use_container_width=True)
 
-
-# =============================
-# TOP SKILL DIFFERENCE
-# =============================
-def extract_skills(series):
-    items = []
-    for s in series:
-        items.extend([i.strip() for i in str(s).split(",")])
-    return pd.Series(items).value_counts()
-
-skill_ok = extract_skills(df[df["Status_Keberhasilan"] == "Berhasil"]["Skills"])
-skill_fail = extract_skills(df[df["Status_Keberhasilan"] == "Gagal"]["Skills"])
-
-diff_skill = (skill_ok - skill_fail).dropna().sort_values(ascending=False).head(10)
-
-st.subheader("Top Skill Pembeda")
-
-fig, ax = plt.subplots(figsize=(10, 6))
-diff_skill.plot(kind="barh", ax=ax)
-ax.invert_yaxis()
-ax.set_xlabel("Selisih Frekuensi")
-st.pyplot(fig)
-
-# =============================
-# BOXPLOT CGPA
-# =============================
-st.subheader("Sebaran CGPA per Karier")
-
-fig, ax = plt.subplots(figsize=(12, 6))
-sns.boxplot(
-    data=df,
-    x="Recommended Career",
-    y="CGPA/Percentage",
-    ax=ax
-)
-plt.xticks(rotation=45)
-st.pyplot(fig)
-
-# -----------------------------
-# PERHITUNGAN PERSENTASE
-# -----------------------------
-# A. Distribusi keseluruhan (Pie)
-dist_counts = df["Education Level"].value_counts(normalize=True) * 100
-dist_df = dist_counts.reindex(target_levels).reset_index()
-dist_df.columns = ["Education Level", "Percentage"]
-
-# B. Persentase Berhasil vs Gagal
-success_counts = (
-    df.groupby(["Education Level", "Status_Keberhasilan"])
-      .size()
-      .unstack(fill_value=0)
-)
-
-success_pct = (
-    success_counts
-    .div(success_counts.sum(axis=1), axis=0) * 100
-).reindex(target_levels)
-
 # =============================
 # HEATMAP: SPESIALISASI vs KARIER (STREAMLIT SUPPORT)
 # =============================
