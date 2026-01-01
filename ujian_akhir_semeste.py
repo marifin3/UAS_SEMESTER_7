@@ -60,8 +60,8 @@ st.dataframe(summary, use_container_width=True)
 st.header("🔍 Analisis Profil Lengkap per Jenjang Pendidikan")
 st.caption("Perbandingan karakteristik individu **Berhasil** dan **Gagal**")
 
-# Mengubah top_n dari 5 menjadi 3
 def get_top_items(dataframe, edu_level, status, column, top_n=3):
+    # Mengambil data yang tidak kosong (NaN)
     subset = dataframe[
         (dataframe["Education Level"] == edu_level) & 
         (dataframe["Status_Keberhasilan"] == status)
@@ -69,8 +69,14 @@ def get_top_items(dataframe, edu_level, status, column, top_n=3):
 
     items = []
     for entry in subset:
-        items.extend([i.strip() for i in str(entry).split(",")])
+        # Pecah string berdasarkan koma dan hapus spasi di awal/akhir
+        parts = [i.strip() for i in str(entry).split(",")]
+        for p in parts:
+            # FILTER: Abaikan jika teksnya 'none', 'nan', atau kosong
+            if p.lower() not in ["none", "nan", ""] and p is not None:
+                items.append(p)
 
+    # Hitung frekuensi data yang sudah bersih
     counts = Counter(items).most_common(top_n)
     return pd.DataFrame(counts, columns=["Item", "Count"])
 
@@ -79,15 +85,15 @@ for jenjang in target_levels:
         continue
 
     with st.expander(f"🎓 {jenjang}"):
-        # Menyesuaikan figsize sedikit agar grafik top 3 tidak terlalu renggang
-        fig, axes = plt.subplots(4, 2, figsize=(16, 18)) 
+        # Ukuran figure disesuaikan untuk Top 3 (lebih pendek dari sebelumnya)
+        fig, axes = plt.subplots(4, 2, figsize=(16, 18))
         fig.suptitle(
             f"Profil Lengkap: {jenjang} (Berhasil vs Gagal)",
             fontsize=18,
             fontweight="bold"
         )
 
-        # Specialization (Sekarang otomatis mengambil Top 3)
+        # 1. Specialization
         sns.barplot(
             data=get_top_items(df, jenjang, "Berhasil", "Specialization"),
             x="Count", y="Item", ax=axes[0, 0], palette="Greens_r"
@@ -100,7 +106,7 @@ for jenjang in target_levels:
         )
         axes[0, 1].set_title("Top 3 Specialization (Gagal)")
 
-        # Skills
+        # 2. Skills
         sns.barplot(
             data=get_top_items(df, jenjang, "Berhasil", "Skills"),
             x="Count", y="Item", ax=axes[1, 0], palette="Greens_r"
@@ -113,7 +119,7 @@ for jenjang in target_levels:
         )
         axes[1, 1].set_title("Top 3 Skills (Gagal)")
 
-        # Certifications
+        # 3. Certifications
         sns.barplot(
             data=get_top_items(df, jenjang, "Berhasil", "Certifications"),
             x="Count", y="Item", ax=axes[2, 0], palette="Greens_r"
@@ -126,7 +132,7 @@ for jenjang in target_levels:
         )
         axes[2, 1].set_title("Top 3 Certifications (Gagal)")
 
-        # CGPA (Distribusi tetap sama karena berupa histogram)
+        # 4. Distribusi CGPA (Tetap menggunakan semua data numerik)
         sns.histplot(
             df[(df["Education Level"] == jenjang) & 
                (df["Status_Keberhasilan"] == "Berhasil")]["CGPA/Percentage"],
