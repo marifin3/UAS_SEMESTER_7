@@ -6,7 +6,15 @@ import seaborn as sns
 from collections import Counter
 from wordcloud import WordCloud
 
-st.set_page_config(page_title="Career Analysis", layout="wide")
+# Konfigurasi halaman
+st.set_page_config(page_title="Career Analysis Dashboard", layout="wide")
+
+# ==============================================================================
+# HEADER UTAMA (UJIAN AKHIR SEMESTER)
+# ==============================================================================
+st.title("UJIAN AKHIR SEMESTER VISUALISASI DATA")
+st.header("Analisis Prediksi dan Rekomendasi Karier Berdasarkan Profil Pendidikan")
+st.markdown("---")
 
 # =============================
 # LOAD DATA
@@ -33,6 +41,7 @@ df["Specialization"] = df["Specialization"].fillna("None")
 df["Skills"] = df["Skills"].fillna("None")
 
 # Feature Engineering sesuai kriteria laporan
+# Sesuai dengan logika kodingan: Berhasil jika CGPA >= 80
 df["Status_Keberhasilan"] = np.where(
     df["CGPA/Percentage"] >= 80, "Berhasil", "Gagal"
 )
@@ -211,9 +220,10 @@ with st.expander("📊 Lihat Heatmap Korelasi", expanded=True):
             st.pyplot(fig)
 
 # -----------------------------
-# TABEL RINGKASAN (Sekarang success_pct sudah ada)
+# TABEL RINGKASAN
 # -----------------------------
 st.markdown("### 📋 Tabel Persentase Keberhasilan")
+# Menampilkan tabel persentase keberhasilan
 st.dataframe(success_pct.round(2), use_container_width=True)
 
 # =============================
